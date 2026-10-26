@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "역사 탐험 연구소 · 중2 역사",
+  "short_name": "역사 공부",
+  "description": "중2 역사 연표·마인드맵·8일 학습·기말고사 모의고사",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#243a69",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
