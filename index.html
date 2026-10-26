@@ -22,4 +22,74 @@ function reviewUI(){let ids=Object.keys(wrong);return `<section class="pane"><h2
 function clearWrong(id){delete wrong[id];set('wrong',wrong);render()}
 function exportProgress(){let o={scope,done,wrong,essays:data.map((_,i)=>get('essay_'+i,''))};let url=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));let a=document.createElement('a');a.href=url;a.download='history-progress.json';a.click();URL.revokeObjectURL(url)}
 render();
+</script>
+<style>
+.examgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.examitem{border:1px solid #d4dfef;padding:12px;border-radius:13px;background:#f8fbff}.examitem p{line-height:1.6}.qnum{font-weight:750;color:#234a8b}.choice.selected{background:#dce8ff;border:2px solid #2557a0}.resultcard{border:1px solid #dce5f0;background:#f8fafc;border-radius:12px;padding:13px;margin:9px 0}.correct{border-left:5px solid #329e72}.incorrect{border-left:5px solid #ce5c51}.examtoolbar{position:sticky;top:0;background:#fff;padding:10px;border-bottom:1px solid #dde5f1;z-index:3}
+</style>
+<script>
+/* 3.0: Five-choice topic banks and three scored 25-question exams.
+   The bank is generated from the existing textbook-aligned term/definition pairs,
+   historical event sequences and foundational checks, rather than external facts. */
+const version3='history-v3-20261026';
+function shuffleStable(xs,seed){let a=[...xs],v=seed>>>0;for(let i=a.length-1;i>0;i--){v=(1664525*v+1013904223)>>>0;let j=v%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+const allTerms=data.flatMap((d,di)=>d.terms.map(t=>({term:t[0],def:t[1],di})));
+function pickOptions(correct,pool,seed){const c=String(correct);let other=[...new Set(pool.filter(x=>x!==c&&x&&String(x).trim()).map(String))];other=shuffleStable(other,seed).slice(0,4);while(other.length<4){let x='해당 없음 '+(other.length+1);other.push(x)}let opt=shuffleStable([c,...other],seed*31+7);return {options:opt,answer:opt.indexOf(c)}}
+function makeQ(question,correct,pool,explanation,seed){return {question, ...pickOptions(correct,pool,seed), explanation}}
+const pools={
+ events:['위화도 회군','과전법 시행','조선 건국','한양 천도','사병 혁파','집현전 설치','경국대전 완성','훈민정음 창제','사림 등용','무오사화','기묘사화','붕당 형성','임진왜란','정유재란','인조반정','정묘호란','병자호란'],
+ kings:['태조','태종','세종','세조','성종','연산군','중종','선조','광해군','인조'],
+ groups:['권문세족','신진 사대부','훈구','사림','동인','서인','의병','수군','6조','3사'],
+ policy:['과전법','직전법','호패법','현량과','사대 외교','교린 외교','향약','서원','경국대전','4군 6진','3포']
+};
+function buildBank(di){const d=data[di],b=[],seed=di*101+7,pool=[...new Set(allTerms.map(t=>t.term))],same=d.terms.map(t=>t[0]);
+ d.q.forEach((q,j)=>{const yes=q[1][q[2]];b.push(makeQ(q[0],yes,[...q[1],...same,...pools.events,...pools.policy],q[3],seed+j))});
+ d.terms.forEach((t,j)=>{
+ b.push(makeQ('다음 설명에 해당하는 역사 개념은? — '+t[1],t[0],[...same,...pool],t[0]+' : '+t[1],seed+20+j));
+ b.push(makeQ('‘'+t[0]+'’에 대한 설명으로 옳은 것은?',t[1],d.terms.map(x=>x[1]).concat(allTerms.filter(x=>x.di!==di).map(x=>x.def)),t[0]+' : '+t[1],seed+40+j));
+ });
+ const step=d.steps;
+ for(let j=0;j<step.length;j++){
+ const yes=step[j];const options=[...step,...data.filter((_,x)=>x!==di).flatMap(x=>x.steps)];
+ b.push(makeQ('「'+d.title+'」의 역사적 흐름에 포함되는 내용으로 옳은 것은?',yes,options,'이 소단원의 학습 흐름: '+step.join(' → '),seed+60+j));
+ }
+ const supplements=[
+ ['조선 성립의 통치 이념은?','성리학',['불교','도교','천주교','동학'],'조선은 성리학을 국가 통치 이념으로 삼았다.'],
+ ['조선의 중앙 최고 통치 기구는?','의정부',['집현전','서원','향교','유향소'],'의정부에서 3정승이 국정을 논의했다.'],
+ ['한양을 기준으로 만든 역법서는?','칠정산',['농사직설','소학','경국대전','주자가례'],'칠정산은 역법서이며 농사직설은 농서다.'],
+ ['명이 아닌 일본·여진에 적용한 외교 원칙은?','교린 외교',['사대 외교','조공 외교','책봉 관계','중립 외교'],'조선은 명에 사대, 여진·일본에 교린 정책을 폈다.'],
+ ['사림의 개혁을 추진하다 기묘사화로 제거된 인물은?','조광조',['정도전','이성계','이순신','최명길'],'조광조는 현량과 시행과 위훈 삭제를 주장하였다.'],
+ ['향촌에서 유교 윤리를 담은 자치 규약은?','향약',['서원','성균관','경연','집현전'],'향약은 향촌 생활을 규율하는 자치 규약이다.'],
+ ['1597년 일본이 다시 침입한 사건은?','정유재란',['병자호란','정묘호란','인조반정','무오사화'],'정유재란은 휴전 회담 결렬 뒤의 재침입이다.'],
+ ['1627년에 발생한 전쟁은?','정묘호란',['임진왜란','정유재란','병자호란','무오사화'],'정묘호란은 후금의 침입으로 발발하였다.']
+ ];
+ let sp=supplements[di];b.push(makeQ(sp[0],sp[1],sp[2],sp[3],seed+91));
+ // Distinct stem/fact combinations, deterministically truncated to twenty.
+ let unique=[],seen=new Set();for(const q of b){let k=q.question+'|'+q.options[q.answer];if(!seen.has(k)){seen.add(k);unique.push(q)}} 
+ for(let j=0;unique.length<20&&j<d.terms.length;j++){let t=d.terms[j];unique.push(makeQ('다음 중 ‘'+t[0]+'’과 가장 직접적으로 관련된 설명은?',t[1],allTerms.map(t=>t.def),t[0]+' : '+t[1],seed+100+j))}
+ return unique.slice(0,20);
+}
+const examBank=data.map((_,i)=>buildBank(i));
+let quiz3Choice=null,quiz3Correct=0,examRun=null,examSelections={},examSubmitted=false;
+const _lessonUI_V2=lessonUI;
+lessonUI=function(){return _lessonUI_V2().replace('<h3>4. 객관식 실력 점검</h3>','<h3>4. 기말고사형 5지선다 (20문항)</h3>').replace('객관식 → 서술형','5지선다 20문항 → 서술형')};
+renderQuiz=function(){const el=$('quizArea');if(!el)return;let q=examBank[day][quizIndex];if(!q){el.innerHTML='문제를 모두 풀었습니다.';return}quiz3Choice=null;el.innerHTML='<p class="qnum">문제 '+(quizIndex+1)+'/20 · '+esc(q.question)+'</p>'+q.options.map((x,j)=>'<button class="choice" onclick="answer('+j+')">'+['①','②','③','④','⑤'][j]+' '+esc(x)+'</button>').join('')+'<div id="result"></div>'};
+answer=function(j){if(quiz3Choice!==null)return;quiz3Choice=j;const q=examBank[day][quizIndex],id=day+'-'+quizIndex,good=j===q.answer;if(good){quiz3Correct++;delete wrong[id]}else wrong[id]=true;set('wrong',wrong);$('result').innerHTML='<div class="answer '+(good?'':'bad')+'"><strong>'+(good?'정답입니다!':'오답입니다. 정답: '+['①','②','③','④','⑤'][q.answer]+' '+esc(q.options[q.answer]))+'</strong><p>'+esc(q.explanation)+'</p></div><button class="primary" onclick="nextQuiz()">'+(quizIndex===19?'채점 결과 보기':'다음 문제 →')+'</button>'};
+nextQuiz=function(){quizIndex++;if(quizIndex>=20){$('quizArea').innerHTML='<div class="answer"><h3>'+quiz3Correct+' / 20 정답 ('+(quiz3Correct*5)+'점)</h3><p>오답은 오답 복습 메뉴에서 확인하세요.</p></div><button onclick="restartQuiz()">20문항 다시 풀기</button>';set('topicScore_'+day,{score:quiz3Correct,total:20,date:new Date().toISOString()})}else renderQuiz()};
+restartQuiz=function(){quizIndex=0;quiz3Correct=0;quiz3Choice=null;renderQuiz()};
+const _openDay_V2=openDay;
+openDay=function(i){quiz3Correct=0;_openDay_V2(i)};
+const _reviewUI_V2=reviewUI;
+reviewUI=function(){let ids=Object.keys(wrong);let output='<section class="pane"><h2>기말고사형 오답 복습 '+ids.length+'개</h2>'+ids.map(id=>{let [di,qi]=id.split('-').map(Number),q=examBank[di]?.[qi];return q?'<div class="resultcard"><b>'+esc(data[di].title)+' · '+(qi+1)+'번</b><p>'+esc(q.question)+'</p><p>정답: '+esc(q.options[q.answer])+'</p><p>'+esc(q.explanation)+'</p><button onclick="clearWrong(\''+id+'\')">이해 완료</button></div>':''}).join('')+(ids.length?'':'<p>저장된 오답이 없습니다.</p>')+'</section>';return output};
+function beginExam(n){examRun=n;examSubmitted=false;examSelections={};let eligible=scope.length?scope:[0,1,2,3,4,5,6,7];let collected=[];for(let k=0;k<25;k++){let di=eligible[(k+n*3)%eligible.length];let qi=(n*7+k*3+Math.floor(k/eligible.length))%20;collected.push({di,qi,q:examBank[di][qi]})}window.currentExam=shuffleStable(collected,n*971+43);view='exam';render();scrollTo({top:0,behavior:'smooth'})}
+function examUI(){if(examRun===null)return '<section class="pane"><h2>실전 모의고사 · 3회</h2><p>각 25문항, 5지선다, 100점 만점. 선택한 시험 범위에서 출제됩니다. 제출 전에는 정답을 보여주지 않습니다.</p><div class="examgrid">'+[0,1,2].map(n=>'<div class="examitem"><b>제'+(n+1)+'회 기말고사</b><p>25문항 · 100점 만점</p><button class="primary" onclick="beginExam('+n+')">시험 시작</button></div>').join('')+'</div></section><section class="pane"><h3>성적 기록</h3>'+[0,1,2].map(n=>{let r=get('exam_'+n,null);return '<p>제'+(n+1)+'회: '+(r?r.score+'점 ('+r.right+'/25 정답)':'응시 전')+'</p>'}).join('')+'</section>';
+let list=window.currentExam||[],selected=Object.keys(examSelections).length;return '<section class="pane"><h2>제'+(examRun+1)+'회 실전 모의고사</h2><div class="examtoolbar"><b>'+selected+'/25 응답'+(examSubmitted?' · 제출 완료':'')+'</b> <button onclick="backExams()">목록으로</button> '+(!examSubmitted?'<button class="primary" onclick="submitExam()">답안 제출 · 자동 채점</button>':'')+'</div>'+list.map((o,i)=>'<div class="examitem" style="margin:16px 0"><p><span class="qnum">'+(i+1)+'.</span> '+esc(o.q.question)+'</p>'+o.q.options.map((v,j)=>'<button '+(examSubmitted?'disabled':'')+' class="choice '+(examSelections[i]===j?'selected':'')+'" onclick="selectExam('+i+','+j+')">'+['①','②','③','④','⑤'][j]+' '+esc(v)+'</button>').join('')+(examSubmitted?'<div class="resultcard '+(examSelections[i]===o.q.answer?'correct':'incorrect')+'"><b>정답 '+['①','②','③','④','⑤'][o.q.answer]+' '+esc(o.q.options[o.q.answer])+'</b><p>'+esc(o.q.explanation)+'</p></div>':'')+'</div>').join('')+(examSubmitted?'<div class="answer"><h2>점수 '+(window.examScore||0)+'점</h2><button onclick="backExams()">모의고사 목록</button></div>':'<button class="primary" onclick="submitExam()">답안 제출 · 자동 채점</button>')+'</section>'}
+function selectExam(i,j){if(examSubmitted)return;examSelections[i]=j;render()}
+function submitExam(){if(examSubmitted)return;const list=window.currentExam||[];let right=0;list.forEach((o,i)=>{if(examSelections[i]===o.q.answer)right++;else {wrong[o.di+'-'+o.qi]=true}});set('wrong',wrong);let score=right*4;window.examScore=score;set('exam_'+examRun,{score,right,date:new Date().toISOString(),answers:examSelections});examSubmitted=true;render();scrollTo({top:0,behavior:'smooth'})}
+function backExams(){examRun=null;examSubmitted=false;view='exam';render()}
+const _render_V2=render;
+render=function(){if(view==='exam')$('app').innerHTML=examUI();else _render_V2()};
+document.querySelector('nav.nav').insertAdjacentHTML('beforeend','<button onclick="tab(\'exam\')">📝 실전 모의고사 3회</button>');
+const _dailyUI_V2=dailyUI;
+dailyUI=function(){return _dailyUI_V2()};
+render();
 </script></body></html>
