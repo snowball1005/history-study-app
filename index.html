@@ -91,7 +91,7 @@ document.querySelector('nav.nav').insertAdjacentHTML('beforeend','<button onclic
 const _dailyUI_V2=dailyUI;
 dailyUI=function(){return _dailyUI_V2()};
 render();
-</script><script src="advanced.js"></script><script>
+</script><script src="advanced.js"></script><script src="enhancement.js"></script><script>
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(e=>console.warn('Service worker:',e)))}
 let installRequest=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installRequest=e;const b=document.getElementById('history-install');if(b)b.hidden=false});
