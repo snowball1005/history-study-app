@@ -151,7 +151,7 @@ nextQuiz=function(){quizIndex++;let n=studyCount();if(quizIndex>=n){document.get
 const wrongHistoryKey='wrongHistoryV5';
 let wrongHistory=get(wrongHistoryKey,{});
 function rememberMistake(di,qi){let id=di+'-'+qi;let h=wrongHistory[id]||{attempts:0,correct:0,last:''};h.attempts++;h.last=new Date().toISOString();wrongHistory[id]=h;set(wrongHistoryKey,wrongHistory)}
-function rememberCorrect(di,qi){let id=di+'-'+qi;if(wrongHistory[id]){wrongHistory[id].correct++;if(wrongHistory[id].correct>=2){delete wrong[id];set('wrong',wrong)}set(wrongHistoryKey,wrongHistory)}}
+function rememberCorrect(di,qi){let id=di+'-'+qi;if(wrongHistory[id]){wrongHistory[id].correct++;if(wrongHistory[id].correct>=2){delete wrong[id];delete wrongHistory[id];set('wrong',wrong)}set(wrongHistoryKey,wrongHistory)}}
 const answerBefore5=answer;
 answer=function(j){if(quiz3Choice!==null)return;const qi=quizIndex,di=day,good=j===examBank[di][qi].answer;answerBefore5(j);if(good)rememberCorrect(di,qi);else rememberMistake(di,qi)};
 const submitBefore5=submitExam;
